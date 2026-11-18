@@ -1,0 +1,50 @@
+name: mac-probe
+on:
+  push:
+    branches: [ci/mac-probe]
+  workflow_dispatch:
+jobs:
+  probe:
+    runs-on: macos-15
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Machine
+        run: |
+          sw_vers; uname -m; whoami; sysctl -n machdep.cpu.brand_string
+          echo "console user: $(stat -f%Su /dev/console)"
+          node --version; which jq git
+      - name: Install Herdr app and core
+        run: |
+          curl -fsSL https://releases.herdr.dev/app/install.sh -o /tmp/herdr-install.sh
+          sed -n 1,60p /tmp/herdr-install.sh
+          sh /tmp/herdr-install.sh 2>&1 | tail -40 || echo "INSTALL EXIT $?"
+          ls -la ~/.local/bin 2>/dev/null || true
+          ls /Applications | grep -i herdr || ls ~/Applications 2>/dev/null | grep -i herdr || echo "no Herdr.app found"
+      - name: Versions
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          which hc herdr-app || true
+          hc --version || true
+          herdr-app --version || true
+          hc --help 2>&1 | head -40 || true
+      - name: Launch app and look
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          open -a Herdr || open "$HOME/Applications/Herdr.app" || echo "open failed"
+          sleep 25
+          herdr-app status 2>&1 | head -60 || true
+          hc ls 2>&1 | head -20 || true
+          ls ~/.config/herdr-app 2>/dev/null | head -30 || true
+          mkdir -p out && screencapture -x out/desktop.png || echo "screencapture failed"
+          ls -la out
+      - name: Check the viewer mod
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          mkdir -p ~/.config/herdr-app/mods && cp -R mods/bf-markdown ~/.config/herdr-app/mods/
+          herdr-app check ~/.config/herdr-app/mods/bf-markdown; echo "check exit: $?"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: probe
+          path: out
