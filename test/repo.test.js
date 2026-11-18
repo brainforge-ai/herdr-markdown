@@ -33,3 +33,14 @@ test("mod.json and keys.json parse, and the picker key opens this mod", () => {
   const keys = JSON.parse(readFileSync("keys.json", "utf8"));
   assert.ok(Object.values(keys.global).every((command) => command === "mod.open:bf-markdown"));
 });
+
+test("the link rule covers Markdown paths, with or without a line number, and nothing else", () => {
+  const { link_handlers: rules } = JSON.parse(readFileSync(join(MOD, "mod.json"), "utf8"));
+  assert.equal(rules.length, 1);
+  assert.equal(rules[0].kind, "file");
+  // Herdr reads the pattern as a Rust regex; "(?i)" there is JavaScript's "i" flag.
+  assert.ok(rules[0].pattern.startsWith("(?i)"));
+  const rule = new RegExp(rules[0].pattern.slice(4), "i");
+  for (const path of ["/a/plan.md", "/a/README.MD", "/a/x.markdown", "/a/x.mdx", "/a/plan.md:12", "/a/plan.md:12:3", "C:/a/plan.md"]) assert.match(path, rule);
+  for (const path of ["/a/main.js", "/a/plan.md.bak", "/a/plan.mdown", "/a/md"]) assert.doesNotMatch(path, rule);
+});

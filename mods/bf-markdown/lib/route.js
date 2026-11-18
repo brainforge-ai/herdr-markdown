@@ -21,3 +21,17 @@ export function route(panes, source, mod) {
 export function takes(request, { tab, seen }) {
   return Boolean(request?.id && request.file && tab && request.tab === tab && request.id !== seen);
 }
+
+/**
+ * One viewer's side of the hand-off. The shared value outlives the app, so whatever is stored when
+ * the viewer starts is old: `stored` is marked as seen, and only later requests are taken.
+ * Returns a function that gives the request to act on, once, or null.
+ */
+export function inbox(tab, stored) {
+  let seen = stored?.id ?? null;
+  return (request) => {
+    if (!takes(request, { tab, seen })) return null;
+    seen = request.id;
+    return request;
+  };
+}

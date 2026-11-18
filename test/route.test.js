@@ -39,3 +39,15 @@ test("a viewer takes a request only for its own tab, and only once", () => {
   assert.equal(takes(undefined, { tab: "tab1", seen: null }), false);
   assert.equal(takes({ id: "8", tab: "tab1" }, { tab: "tab1", seen: null }), false);
 });
+
+test("a viewer acts on a request once, and never on one stored before it started", async () => {
+  const { inbox } = await import("../mods/bf-markdown/lib/route.js");
+  const old = { id: "1", tab: "tab1", file: "/second.md", on: null };
+  const next = inbox("tab1", old);
+  assert.equal(next(old), null, "stored before the viewer started: it keeps the file from its props");
+  const fresh = { id: "2", tab: "tab1", file: "/third.md", on: null };
+  assert.equal(next(fresh), fresh);
+  assert.equal(next(fresh), null, "taken once");
+  assert.equal(next({ id: "3", tab: "tab2", file: "/other.md", on: null }), null, "another tab's");
+  assert.equal(inbox("tab1", undefined)(fresh), fresh, "nothing stored at start");
+});

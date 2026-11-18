@@ -1,1 +1,1 @@
-{ "place": "none", "title": "Markdown", "overlay": { "kind": "popup", "at": "top", "offset": 40, "width": 620, "height": 440 } }
+{ "place": "none", "title": "Markdown", "overlay": { "kind": "popup", "at": "top", "offset": 40, "width": 620, "height": 440 }, "link_handlers": [{ "kind": "file", "pattern": "(?i)\\.(md|markdown|mdx)(:\\d+){0,2}$" }] }

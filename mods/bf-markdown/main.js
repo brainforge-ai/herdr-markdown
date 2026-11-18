@@ -10,9 +10,11 @@
 //   browser.
 import { View, div, image } from "gpui-kit";
 import { v_flex, h_flex, InputState, Input, Editor, EditorState, TextView } from "gpui-base";
-import { focused, panes, hc, exec, run, theme, settings, props, closeOverlay, home, readTextFile, watchFolder, window } from "herdr";
+import { focused, panes, hc, exec, run, theme, settings, props, shared, closeOverlay, home, readTextFile, watchFolder, window } from "herdr";
 import { existing } from "./paths.js";
 import { mentions } from "./lib/mentions.js";
+import { MOD, OPEN_KEY } from "./lib/open.js";
+import { inbox } from "./lib/route.js";
 import { icon as drawIcon, writeIcons } from "./icons.js";
 import { blocks, loadLocal, loadWeb, pruneOld } from "./pictures.js";
 
@@ -41,23 +43,30 @@ export default class Markdown extends View {
   init(_props, cx) {
     const p = props() ?? {};
     cx.spawn(async (cx) => { await writeIcons().catch(() => null); cx.notify(); });
-    if (p.file) this.viewer = new Viewer(p.file, p.on ?? null, cx);
+    if (p.file) this.viewer = new Viewer(p.file, p.on ?? null, ownTab(p), cx);
     else this.picker = new Picker(p.overlay, cx);
   }
   render(cx) { return (this.viewer ?? this.picker).render(cx); }
 }
 
+// The tab a viewer is in. A split is told in its props (lib/open.js). A viewer opened as a tab of
+// its own isn't, and Herdr doesn't say: its pane if Herdr gave one, else the tab that has focus as
+// it starts, which is the one just made for it.
+function ownTab(p) {
+  return p.tab ?? panes().find((x) => p.pane && x.pane === p.pane)?.tab ?? focused()?.tab ?? null;
+}
+
 // Opens a file: a new tab named after it, or a split beside the pane that had focus.
-function open(file, on, split, pane) {
+function open(file, on, split, pane, tab) {
   const p = { file, ...(on ? { on } : {}) };
-  if (split && pane) run("pane.split", { direction: "right", pane, mod: "bf-markdown", props: p });
-  else run("tab.new", { mod: "bf-markdown", props: p, name: base(file) });
+  if (split && pane) run("pane.split", { direction: "right", pane, mod: MOD, props: { ...p, ...(tab ? { tab } : {}) } });
+  else run("tab.new", { mod: MOD, props: p, name: base(file) });
 }
 
 class Picker {
   constructor(overlay, cx) {
     const f = focused();
-    this.overlay = overlay; this.pane = f?.pane ?? null;
+    this.overlay = overlay; this.pane = f?.pane ?? null; this.tab = f?.tab ?? null;
     this.terminal = f?.terminal ?? null;
     // Relative paths are from the pane's folder (where the agent works), as Changes finds it.
     this.cwd = (f?.pane && panes().find((p) => p.pane === f.pane)?.cwd) || f?.cwd || null;
@@ -91,13 +100,13 @@ class Picker {
       // Nothing listed matches: try what was typed as a path.
       cx.spawn(async (cx) => {
         const [found] = await existing([typed], this.cwd, this.on).catch(() => []);
-        if (found) { open(found, this.on, split, this.pane); closeOverlay(this.overlay); }
+        if (found) { open(found, this.on, split, this.pane, this.tab); closeOverlay(this.overlay); }
         else { this.error = `No file at ${typed}`; cx.notify(); }
       });
       return;
     }
     if (!file) return;
-    open(file, this.on, split, this.pane);
+    open(file, this.on, split, this.pane, this.tab);
     closeOverlay(this.overlay);
   }
 
@@ -142,13 +151,28 @@ class Picker {
 const body = (text) => text.replace(/^---\n[\s\S]*?\n---\n/, "");
 
 class Viewer {
-  constructor(file, on, cx) {
+  constructor(file, on, tab, cx) {
     this.file = file; this.on = on; this.history = []; this.text = null; this.error = null;
     this.source = localStorage.getItem("source") === "1"; this.editor = null; this.gen = 0;
     this.parts = []; this.pictures = {};
     pruneOld();
     this.load(cx);
     cx.timer.every(on ? 3000 : 15000, (cx) => this.reload(cx)); // a remote file can't be watched; a local one is, this is the backstop
+    // A click on another path in this tab arrives as a shared value (lib/open.js). It is looked at
+    // on a timer, not while drawing: taking a file loads it and makes editors, which drawing can't.
+    this.next = inbox(tab, shared(OPEN_KEY));
+    cx.timer.every(250, (cx) => this.take(cx));
+  }
+
+  take(cx) {
+    const request = this.next(shared(OPEN_KEY));
+    if (!request) return;
+    const on = request.on ?? null;
+    if (request.file === this.file && on === this.on) return;
+    this.history.push(this.file);
+    this.file = request.file; this.on = on;
+    this.load(cx);
+    cx.notify();
   }
 
   load(cx) {
