@@ -11,7 +11,8 @@
 import { View, div, image } from "gpui-kit";
 import { v_flex, h_flex, InputState, Input, Editor, EditorState, TextView } from "gpui-base";
 import { focused, panes, hc, exec, run, theme, settings, props, closeOverlay, home, readTextFile, watchFolder, window } from "herdr";
-import { mentions, existing } from "./paths.js";
+import { existing } from "./paths.js";
+import { mentions } from "./lib/mentions.js";
 import { icon as drawIcon, writeIcons } from "./icons.js";
 import { blocks, loadLocal, loadWeb, pruneOld } from "./pictures.js";
 
