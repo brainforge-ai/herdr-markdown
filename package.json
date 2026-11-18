@@ -1,0 +1,12 @@
+{
+  "name": "bf-markdown",
+  "private": true,
+  "description": "Brainforge's Markdown viewer mod for the Herdr app, forked from jgrecoarroyo/herdr-markdown",
+  "license": "MIT",
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "test": "node --import ./test/helpers/register.js --test \"test/*.test.js\"",
+    "check": "node scripts/check-syntax.js"
+  }
+}

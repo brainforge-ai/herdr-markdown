@@ -1,4 +1,6 @@
-# Markdown Viewer for Herdr
+# Markdown Viewer for Herdr (Brainforge fork)
+
+> A fork of [jgrecoarroyo/herdr-markdown](https://github.com/jgrecoarroyo/herdr-markdown), renamed `bf-markdown`. It opens clicked paths through Herdr's own terminal link handler, so it no longer installs a helper app or changes which app opens `.md` files. This README is being rewritten for the fork; `docs/manual-test.md` is the current check list.
 
 When your coding agent mentions a Markdown file, click the path in the conversation and read it
 rendered, right beside the conversation. No switching to another app or hunting for it in Finder.
@@ -7,7 +9,7 @@ rendered, right beside the conversation. No switching to another app or hunting 
 
 ## What you get
 
-- **Click a path (macOS):** cmd-click a `.md` path in the conversation to open it in a split on the right, or in the viewer already showing. Outside Herdr, `.md` files keep opening in your usual app.
+- **Click a path:** cmd-click (ctrl-click on Windows and Linux) a `.md` path in the conversation to open it in a split on the right, or in the viewer already showing in that tab. Nothing outside Herdr changes.
 - **Viewer:** rendered Markdown with images and highlighted code blocks with a copy button, reloading as the agent edits the file, with a Source/Preview switch. Links to other `.md` files open in place, with Back. Web links open in your browser.
 - **Picker:** a key lists the `.md` paths on the focused terminal's screen, newest first. Enter opens a tab, cmd-Enter (ctrl-Enter on Linux) opens a split. Type to filter, or type a path.
 - **Other machines:** the picker and viewer work with terminals on your other Herdr machines too.
@@ -18,30 +20,19 @@ rendered, right beside the conversation. No switching to another app or hunting 
 
 ```sh
 git clone https://github.com/jgrecoarroyo/herdr-markdown.git
-cp -R herdr-markdown/mods/* ~/.config/herdr-app/mods/
+cp -R herdr-markdown/mods/bf-markdown ~/.config/herdr-app/mods/
 ```
 
-**2. Turn on clicking (macOS)**
-
-This makes a small background app your default for `.md` files. When Herdr is in front, it opens the file in the viewer. Anywhere else, it hands the file to the app you were already using. Building it needs Xcode's command line tools.
-
-```sh
-~/.config/herdr-app/mods/markdown-viewer/router/build.sh
-~/Applications/Markdown\ Router.app/Contents/MacOS/MarkdownRouter --make-default
-```
-
-To undo it, run the same app with `--restore`, which gives `.md` files back to your usual app.
-
-**3. Add a key for the picker**
+**2. Add a key for the picker**
 
 In `~/.config/herdr-app/keys.json`, inside `"global"`. Use one of these, or any free key:
 
 ```json
-"cmd-shift-o": "mod.open:markdown-viewer"
+"cmd-shift-o": "mod.open:bf-markdown"
 ```
 
 ```json
-"ctrl-shift-m": "mod.open:markdown-viewer"
+"ctrl-shift-m": "mod.open:bf-markdown"
 ```
 
 ## Good to know

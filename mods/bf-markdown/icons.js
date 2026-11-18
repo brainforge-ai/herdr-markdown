@@ -24,7 +24,7 @@ let ready = false, written = null;
 // Resolves once the icons are on disk; redraw after that.
 export function writeIcons() {
   written ??= (async () => {
-    const folder = `${appHome()}/data/markdown-viewer/icons`;
+    const folder = `${appHome()}/data/bf-markdown/icons`;
     await fs.mkdir(folder, { recursive: true });
     for (const [name, content] of Object.entries(ICONS)) await fs.writeFile(`${folder}/${name}.svg`, content);
     ready = true;
@@ -32,4 +32,4 @@ export function writeIcons() {
   return written;
 }
 
-export const icon = (name) => ready ? svg(`data/markdown-viewer/icons/${name}.svg`) : div();
+export const icon = (name) => ready ? svg(`data/bf-markdown/icons/${name}.svg`) : div();

@@ -6,7 +6,7 @@
 import * as fs from "fs/promises";
 import { appHome, exec, home } from "herdr";
 
-const RELATIVE = "data/markdown-viewer/images";
+const RELATIVE = "data/bf-markdown/images";
 const MAX_BYTES = 20 * 1024 * 1024;
 const IMAGE_FILE = /\.(png|jpe?g|gif|webp|svg)$/i;
 

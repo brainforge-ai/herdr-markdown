@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: tests (${{ matrix.os }}, node ${{ matrix.node }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        node: [22, 24]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Syntax
+        run: npm run check
+      - name: mod.json and keys.json are valid JSON
+        run: node -e "for (const f of ['mods/bf-markdown/mod.json', 'keys.json', 'package.json']) JSON.parse(require('fs').readFileSync(f, 'utf8'))"
+      - name: Tests
+        run: npm test

@@ -1,7 +1,7 @@
 // Markdown: open the .md files an agent just printed, rendered, inside Herdr.
 //
 // Two roles, one mod:
-// - Opened as its overlay (cmd-shift-o → mod.open:markdown): a picker of the Markdown
+// - Opened as its overlay (cmd-shift-o → mod.open:bf-markdown): a picker of the Markdown
 //   files mentioned in the focused terminal's recent output, newest first. One match
 //   opens straight away. Enter opens it in a new tab, cmd-Enter in a split beside the
 //   terminal; type to filter, or type/paste a path.
@@ -10,13 +10,11 @@
 //   browser.
 import { View, div, image } from "gpui-kit";
 import { v_flex, h_flex, InputState, Input, Editor, EditorState, TextView } from "gpui-base";
-import { focused, panes, hc, exec, run, theme, settings, props, closeOverlay, home, appHome, readTextFile, watchFolder, nextCommand, window } from "herdr";
-import * as fs from "fs/promises";
+import { focused, panes, hc, exec, run, theme, settings, props, closeOverlay, home, readTextFile, watchFolder, window } from "herdr";
 import { mentions, existing } from "./paths.js";
 import { icon as drawIcon, writeIcons } from "./icons.js";
 import { blocks, loadLocal, loadWeb, pruneOld } from "./pictures.js";
 
-const DATA = () => `${appHome()}/data/markdown-viewer`;
 const mac = () => window()?.platform === "macos";
 const base = (p) => p.slice(p.lastIndexOf("/") + 1);
 const dir = (p) => p.slice(0, p.lastIndexOf("/")) || "/";
@@ -35,13 +33,8 @@ const CODE_PADDING = 24;
 const openLink = (url) => exec(mac() ? "open" : "xdg-open", [url]).catch(() => null);
 const reveal = (path) => exec(mac() ? "open" : "xdg-open", mac() ? ["-R", path] : [dir(path)]).catch(() => null);
 
-// Opens a file outside Herdr. With the Markdown Router as macOS's default app for .md (router/), the
-// default would send it straight back here, so this uses the app the router took over from.
-async function openElsewhere(file) {
-  if (!mac()) return exec("xdg-open", [file]).catch(() => null);
-  const id = (await readTextFile(`${DATA()}/fallback`).catch(() => null))?.trim() ?? "";
-  return exec("open", /^[\w.-]+$/.test(id) ? ["-b", id, file] : [file]).catch(() => null);
-}
+// Opens a file outside Herdr, in the system's app for it.
+const openElsewhere = (file) => exec(mac() ? "open" : "xdg-open", [file]).catch(() => null);
 
 export default class Markdown extends View {
   init(_props, cx) {
@@ -56,8 +49,8 @@ export default class Markdown extends View {
 // Opens a file: a new tab named after it, or a split beside the pane that had focus.
 function open(file, on, split, pane) {
   const p = { file, ...(on ? { on } : {}) };
-  if (split && pane) run("pane.split", { direction: "right", pane, mod: "markdown-viewer", props: p });
-  else run("tab.new", { mod: "markdown-viewer", props: p, name: base(file) });
+  if (split && pane) run("pane.split", { direction: "right", pane, mod: "bf-markdown", props: p });
+  else run("tab.new", { mod: "bf-markdown", props: p, name: base(file) });
 }
 
 class Picker {
@@ -154,29 +147,7 @@ class Viewer {
     this.parts = []; this.pictures = {};
     pruneOld();
     this.load(cx);
-    this.listen(cx);
     cx.timer.every(on ? 3000 : 15000, (cx) => this.reload(cx)); // a remote file can't be watched; a local one is, this is the backstop
-  }
-
-  // open.sh (the Markdown Router on macOS, while Herdr is in front) asks a viewer that's showing to
-  // take the file: it writes data/markdown-viewer/request.json and runs `markdown-viewer.show`.
-  // The one that takes it answers in data/markdown-viewer/ack; with no answer, open.sh splits a new one.
-  listen(cx) {
-    cx.spawn(async (cx) => {
-      for (;;) {
-        const c = await nextCommand();
-        if (c !== "show") continue;
-        try {
-          const folder = DATA();
-          const req = JSON.parse(await fs.readFile(`${folder}/request.json`, "utf8"));
-          if (!req?.file || req.id === this.answered) continue;
-          this.answered = req.id;
-          await fs.writeFile(`${folder}/ack`, req.id);
-          if (req.file !== this.file) { this.history.push(this.file); this.file = req.file; this.on = null; this.load(cx); }
-          cx.notify();
-        } catch {}
-      }
-    });
   }
 
   load(cx) {
